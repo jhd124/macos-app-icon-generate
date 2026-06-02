@@ -1,0 +1,171 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Generate macOS icon assets from one image.
+
+Usage:
+  bash generate_macos_logo.sh -i <input_image> [-o <output_dir>] [-n <app_name>] [--png-only] [--no-optimize]
+
+Options:
+  -i, --input       Source image path (required)
+  -o, --output      Output directory (default: ./dist)
+  -n, --name        App/icon base name (default: AppIcon)
+      --png-only    Generate iconset PNG files only; skip .icns packaging
+      --no-optimize Disable PNG optimization step after generation
+  -h, --help        Show help
+EOF
+}
+
+require_command() {
+  local cmd="$1"
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    echo "Error: required command not found: $cmd" >&2
+    exit 1
+  fi
+}
+
+INPUT_IMAGE=""
+OUTPUT_DIR="./dist"
+APP_NAME="AppIcon"
+PNG_ONLY="false"
+OPTIMIZE="true"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -i|--input)
+      INPUT_IMAGE="${2:-}"
+      shift 2
+      ;;
+    -o|--output)
+      OUTPUT_DIR="${2:-}"
+      shift 2
+      ;;
+    -n|--name)
+      APP_NAME="${2:-}"
+      shift 2
+      ;;
+    --png-only)
+      PNG_ONLY="true"
+      shift
+      ;;
+    --no-optimize)
+      OPTIMIZE="false"
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Error: unknown argument: $1" >&2
+      usage
+      exit 1
+      ;;
+  esac
+done
+
+if [[ -z "$INPUT_IMAGE" ]]; then
+  echo "Error: input image is required." >&2
+  usage
+  exit 1
+fi
+
+if [[ ! -f "$INPUT_IMAGE" ]]; then
+  echo "Error: input image not found: $INPUT_IMAGE" >&2
+  exit 1
+fi
+
+require_command sips
+if [[ "$PNG_ONLY" != "true" ]]; then
+  require_command iconutil
+fi
+
+mkdir -p "$OUTPUT_DIR"
+
+ICONSET_DIR="$OUTPUT_DIR/$APP_NAME.iconset"
+ICNS_FILE="$OUTPUT_DIR/$APP_NAME.icns"
+
+rm -rf "$ICONSET_DIR"
+mkdir -p "$ICONSET_DIR"
+
+TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "$TMP_DIR"' EXIT
+
+NORMALIZED_IMAGE="$TMP_DIR/normalized.png"
+
+# Convert to PNG first so downstream resizing is consistent.
+sips -s format png "$INPUT_IMAGE" --out "$NORMALIZED_IMAGE" >/dev/null
+
+WIDTH="$(sips -g pixelWidth "$NORMALIZED_IMAGE" | awk '/pixelWidth:/ {print $2}')"
+HEIGHT="$(sips -g pixelHeight "$NORMALIZED_IMAGE" | awk '/pixelHeight:/ {print $2}')"
+
+if [[ "$WIDTH" != "$HEIGHT" ]]; then
+  if [[ "$WIDTH" -gt "$HEIGHT" ]]; then
+    SQUARE="$WIDTH"
+  else
+    SQUARE="$HEIGHT"
+  fi
+  # Preserve the full logo by padding the shorter side to a square canvas.
+  sips --padToHeightWidth "$SQUARE" "$SQUARE" "$NORMALIZED_IMAGE" --out "$NORMALIZED_IMAGE" >/dev/null
+fi
+
+write_icon() {
+  local size="$1"
+  local filename="$2"
+  sips -z "$size" "$size" "$NORMALIZED_IMAGE" --out "$ICONSET_DIR/$filename" >/dev/null
+}
+
+optimize_png_file() {
+  local file="$1"
+  if command -v pngquant >/dev/null 2>&1; then
+    pngquant --force --output "$file" --speed 1 --quality 65-90 -- "$file" >/dev/null 2>&1 || true
+    return 0
+  fi
+  if command -v zopflipng >/dev/null 2>&1; then
+    zopflipng -y "$file" "$file" >/dev/null 2>&1 || true
+    return 0
+  fi
+  if command -v optipng >/dev/null 2>&1; then
+    optipng -quiet -o2 "$file" >/dev/null 2>&1 || true
+    return 0
+  fi
+  return 1
+}
+
+# Standard macOS iconset files.
+write_icon 16   "icon_16x16.png"
+write_icon 32   "icon_16x16@2x.png"
+write_icon 32   "icon_32x32.png"
+write_icon 64   "icon_32x32@2x.png"
+write_icon 128  "icon_128x128.png"
+write_icon 256  "icon_128x128@2x.png"
+write_icon 256  "icon_256x256.png"
+write_icon 512  "icon_256x256@2x.png"
+write_icon 512  "icon_512x512.png"
+write_icon 1024 "icon_512x512@2x.png"
+
+if [[ "$OPTIMIZE" == "true" ]]; then
+  OPTIMIZER_FOUND="false"
+  for png_file in "$ICONSET_DIR"/*.png; do
+    if optimize_png_file "$png_file"; then
+      OPTIMIZER_FOUND="true"
+    fi
+  done
+  if [[ "$OPTIMIZER_FOUND" == "true" ]]; then
+    echo "Done: optimized PNG files in iconset."
+  else
+    echo "Info: PNG optimization skipped (no optimizer found: pngquant/zopflipng/optipng)." >&2
+    echo "Info: install one with Homebrew, e.g. brew install pngquant" >&2
+  fi
+fi
+
+if [[ "$PNG_ONLY" == "true" ]]; then
+  echo "Done: generated macOS iconset PNGs at: $ICONSET_DIR"
+  exit 0
+fi
+
+iconutil -c icns "$ICONSET_DIR" -o "$ICNS_FILE"
+echo "Done: generated macOS iconset at: $ICONSET_DIR"
+echo "Done: generated macOS icns at: $ICNS_FILE"
