@@ -1,6 +1,7 @@
 # macOS Logo Series Skill
 
 Generate a full macOS app icon set from one input image, including:
+
 - `.iconset` PNG files (standard macOS sizes)
 - optional `.icns` packaging
 - optional PNG optimization (`pngquant`/`zopflipng`/`optipng`)
@@ -74,3 +75,4 @@ brew install pngquant
 ```bash
 rm -rf ~/.cursor/skills/macos-logo-series
 ```
+
