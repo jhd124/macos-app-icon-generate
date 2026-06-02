@@ -24,13 +24,13 @@ bash install.sh
 ### Option 2: One-line GitHub install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/<owner>/<repo>/main/install.sh | bash -s -- --repo <owner>/<repo> --ref main
+curl -fsSL https://github.com/jhd124/macos-app-icon-generate/main/install.sh | bash -s -- --repo <owner>/<repo> --ref main
 ```
 
 If already installed, overwrite with:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/<owner>/<repo>/main/install.sh | bash -s -- --repo <owner>/<repo> --ref main --force
+curl -fsSL https://github.com/jhd124/macos-app-icon-generate/main/install.sh | bash -s -- --repo <owner>/<repo> --ref main --force
 ```
 
 ## Use in Cursor
