@@ -16,21 +16,21 @@ Generate a full macOS app icon set from one input image, including:
 ### Option 1: Local install (after clone)
 
 ```bash
-git clone https://github.com/<owner>/<repo>.git
-cd <repo>
+git clone https://github.com/jhd124/macos-app-icon-generate.git
+cd macos-app-icon-generate
 bash install.sh
 ```
 
 ### Option 2: One-line GitHub install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/<owner>/<repo>/main/install.sh | bash -s -- --repo <owner>/<repo> --ref main
+curl -fsSL https://raw.githubusercontent.com/jhd124/macos-app-icon-generate/main/install.sh | bash -s -- --repo jhd124/macos-app-icon-generate --ref main
 ```
 
 If already installed, overwrite with:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/<owner>/<repo>/main/install.sh | bash -s -- --repo <owner>/<repo> --ref main --force
+curl -fsSL https://raw.githubusercontent.com/jhd124/macos-app-icon-generate/main/install.sh | bash -s -- --repo jhd124/macos-app-icon-generate --ref main --force
 ```
 
 ## Use in Cursor
