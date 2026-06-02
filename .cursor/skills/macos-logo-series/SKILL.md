@@ -10,6 +10,8 @@ disable-model-invocation: true
 
 Turns one user-provided image into a macOS icon asset set:
 - `*.iconset` directory with standard macOS PNG sizes
+- `*-square/` directory with square PNG series (16~1024)
+- `*-store/` directory with store PNG series (1024/2048)
 - `*.icns` file (default)
 - optional PNG-only output
 
@@ -48,10 +50,14 @@ bash .cursor/skills/macos-logo-series/scripts/generate_macos_logo.sh -i "<input_
 
 Default mode:
 - `<output_dir>/<app_name>.iconset/`
+- `<output_dir>/<app_name>-square/`
+- `<output_dir>/<app_name>-store/`
 - `<output_dir>/<app_name>.icns`
 
 PNG-only mode:
 - `<output_dir>/<app_name>.iconset/`
+- `<output_dir>/<app_name>-square/`
+- `<output_dir>/<app_name>-store/`
 
 ## Notes
 

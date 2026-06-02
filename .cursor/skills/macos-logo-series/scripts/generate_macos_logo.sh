@@ -12,7 +12,7 @@ Options:
   -i, --input       Source image path (required)
   -o, --output      Output directory (default: ./dist)
   -n, --name        App/icon base name (default: AppIcon)
-      --png-only    Generate iconset PNG files only; skip .icns packaging
+      --png-only    Generate PNG sets only; skip .icns packaging
       --no-optimize Disable PNG optimization step after generation
   -h, --help        Show help
 EOF
@@ -86,9 +86,15 @@ mkdir -p "$OUTPUT_DIR"
 
 ICONSET_DIR="$OUTPUT_DIR/$APP_NAME.iconset"
 ICNS_FILE="$OUTPUT_DIR/$APP_NAME.icns"
+SQUARE_DIR="$OUTPUT_DIR/$APP_NAME-square"
+STORE_DIR="$OUTPUT_DIR/$APP_NAME-store"
 
 rm -rf "$ICONSET_DIR"
+rm -rf "$SQUARE_DIR"
+rm -rf "$STORE_DIR"
 mkdir -p "$ICONSET_DIR"
+mkdir -p "$SQUARE_DIR"
+mkdir -p "$STORE_DIR"
 
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
@@ -115,6 +121,16 @@ write_icon() {
   local size="$1"
   local filename="$2"
   sips -z "$size" "$size" "$NORMALIZED_IMAGE" --out "$ICONSET_DIR/$filename" >/dev/null
+}
+
+write_square() {
+  local size="$1"
+  sips -z "$size" "$size" "$NORMALIZED_IMAGE" --out "$SQUARE_DIR/square-${size}.png" >/dev/null
+}
+
+write_store() {
+  local size="$1"
+  sips -z "$size" "$size" "$NORMALIZED_IMAGE" --out "$STORE_DIR/store-${size}.png" >/dev/null
 }
 
 optimize_png_file() {
@@ -146,15 +162,30 @@ write_icon 512  "icon_256x256@2x.png"
 write_icon 512  "icon_512x512.png"
 write_icon 1024 "icon_512x512@2x.png"
 
+# Additional square series (generic distribution assets).
+write_square 16
+write_square 32
+write_square 64
+write_square 128
+write_square 256
+write_square 512
+write_square 1024
+
+# Store series (App Store and high-res marketing).
+write_store 1024
+write_store 2048
+
 if [[ "$OPTIMIZE" == "true" ]]; then
   OPTIMIZER_FOUND="false"
-  for png_file in "$ICONSET_DIR"/*.png; do
-    if optimize_png_file "$png_file"; then
-      OPTIMIZER_FOUND="true"
-    fi
+  for target_dir in "$ICONSET_DIR" "$SQUARE_DIR" "$STORE_DIR"; do
+    for png_file in "$target_dir"/*.png; do
+      if optimize_png_file "$png_file"; then
+        OPTIMIZER_FOUND="true"
+      fi
+    done
   done
   if [[ "$OPTIMIZER_FOUND" == "true" ]]; then
-    echo "Done: optimized PNG files in iconset."
+    echo "Done: optimized PNG files in iconset/square/store."
   else
     echo "Info: PNG optimization skipped (no optimizer found: pngquant/zopflipng/optipng)." >&2
     echo "Info: install one with Homebrew, e.g. brew install pngquant" >&2
@@ -163,9 +194,13 @@ fi
 
 if [[ "$PNG_ONLY" == "true" ]]; then
   echo "Done: generated macOS iconset PNGs at: $ICONSET_DIR"
+  echo "Done: generated square PNGs at: $SQUARE_DIR"
+  echo "Done: generated store PNGs at: $STORE_DIR"
   exit 0
 fi
 
 iconutil -c icns "$ICONSET_DIR" -o "$ICNS_FILE"
 echo "Done: generated macOS iconset at: $ICONSET_DIR"
 echo "Done: generated macOS icns at: $ICNS_FILE"
+echo "Done: generated square PNGs at: $SQUARE_DIR"
+echo "Done: generated store PNGs at: $STORE_DIR"

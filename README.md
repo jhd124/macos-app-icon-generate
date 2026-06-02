@@ -3,6 +3,8 @@
 Generate a full macOS app icon set from one input image, including:
 
 - `.iconset` PNG files (standard macOS sizes)
+- `-square` PNG series (`16/32/64/128/256/512/1024`)
+- `-store` PNG series (`1024/2048`)
 - optional `.icns` packaging
 - optional PNG optimization (`pngquant`/`zopflipng`/`optipng`)
 
